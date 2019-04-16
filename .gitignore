@@ -1,0 +1,5 @@
+*.o
+.vscode
+par_adapt
+par_for
+test-adpt
