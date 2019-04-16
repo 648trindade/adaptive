@@ -24,12 +24,12 @@ int main(int argc, char **argv) {
     //std::copy(begin(v), end(v), begin(vcopy));
 
     auto t0 = omp_get_wtime();
-    adapt::for_each(begin(v), end(v), [](double &x) { 
+    adapt::for_each(begin(v), end(v), [](double &x, void* ptr) { 
       double res = 0.0;
       for (auto i= 0; i < 10000; i++)
         res += cos(x) + sin(x);
       x = res;
-    });
+    }, nullptr);
     auto t1 = omp_get_wtime();
     auto time = t1-t0;
 

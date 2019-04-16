@@ -35,18 +35,18 @@ class Work {
     }
 
     bool ExtractNextSeq() {
-        omp_set_lock(&_lock);
+        //omp_set_lock(&_lock);
         bool local_extract_is_possible = extract_nextseq();
-        omp_unset_lock(&_lock);
+        //omp_unset_lock(&_lock);
         return local_extract_is_possible;
     }
 
     bool ExtractPar(WorkPtr &wp) {
         //omp_set_lock(&_lock);
-        while(omp_test_lock(&_lock) == 0) {}
+        //while(omp_test_lock(&_lock) == 0) {}
 
         bool steal_extract_is_possible = extract_par(wp);
-        omp_unset_lock(&_lock);
+        //omp_unset_lock(&_lock);
         return steal_extract_is_possible;
     }
     void LocalCompute() {
