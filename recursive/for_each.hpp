@@ -4,6 +4,7 @@
 #include "adapt.hpp"
 #include <algorithm>
 #include <cstdio>
+#include <atomic>
 
 namespace adapt {
 
@@ -13,8 +14,8 @@ template <class It, class Op, class Data> class ForeachWork : public Work {
     Op _op;
     Data _data;
 
-    volatile size_t _beg;
-    volatile size_t _end;
+    std::atomic<size_t> _beg;
+    std::atomic<size_t> _end;
     size_t _seqgrain;
     size_t _pargrain;
     size_t _c;
@@ -26,7 +27,7 @@ template <class It, class Op, class Data> class ForeachWork : public Work {
         : Work(), _first(first), _last(last), _op(op), _beg(beg), _data(data),
           _pargrain(pargrain) {
         _end = last - first;
-        _seqgrain = std::log2(_end);
+        _seqgrain = std::log2(static_cast<size_t>(_end));
     }
 
     bool extract_nextseq() {
@@ -36,7 +37,7 @@ template <class It, class Op, class Data> class ForeachWork : public Work {
             m_beg = std::min(m_beg, static_cast<size_t>(_end));
             
             _beg = m_beg;
-            __sync_synchronize();
+            //__sync_synchronize();
             if (_beg > _end){ //conflict: rollback and try again
                 _beg = _beg_local;
                 return extract_nextseq();
@@ -66,7 +67,7 @@ template <class It, class Op, class Data> class ForeachWork : public Work {
             i = mid;
             j = _end;
             _end = mid;
-            __sync_synchronize();
+            //__sync_synchronize();
             // Conflict: rollback and abort
             if (_end < _beg){
                 _end = j;

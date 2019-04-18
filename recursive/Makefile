@@ -1,6 +1,6 @@
 
 CXX = g++
-CXXFLAGS = -std=c++11 -g -fopenmp -DCONFIG_VERBOSE
+CXXFLAGS = -std=c++11 -O3 -fopenmp #-DCONFIG_VERBOSE
 
 all: par_for par_adapt test-adpt
 

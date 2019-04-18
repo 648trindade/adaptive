@@ -2,6 +2,7 @@
 #include <math.h>   //sqrt
 #include <omp.h>    //OpenMP
 #include <string.h> //memset
+#include <stdatomic.h>
 
 #define MIN(a,b) ((a<=b)?a:b)
 #define MAX(a,b) ((a<=b)?b:a)
@@ -10,8 +11,8 @@
 
 // Estrutura representando um intervalo
 typedef struct{
-    volatile size_t f; // Início do intervalo
-    volatile size_t l; // Fim do intervalo
+    atomic_size_t f; // Início do intervalo
+    atomic_size_t l; // Fim do intervalo
     size_t c; // Tamanho do chunk
     size_t r; // Raiz quadrada do tamanho total
 } adpt_range_t;
