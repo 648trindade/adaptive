@@ -5,11 +5,20 @@
 #include <cmath>
 #include <algorithm>
 #include <memory>
+#include <limits>
 
 #define ALPHA 1
 
 #define WorkerPtr Worker<Function, Data>
 #define WorkerVec std::shared_ptr<std::vector<WorkerPtr>>
+
+#ifdef DDEBUG
+typedef struct{
+    double time;
+    char type;
+    size_t wf, wl, f, l;
+}trace_t;
+#endif
 
 template <class Function, class Data>
 class Worker{
@@ -19,7 +28,6 @@ private:
     size_t _seq_chunk; // Tamanho do chunk
     size_t _working_first;
     size_t _working_last;
-    //std::vector<bool> _visited; // vetor de histórico de acesso
     WorkerVec _workers_array;
 
 public:
@@ -27,6 +35,10 @@ public:
     std::atomic<size_t> last; // Fim do intervalo
     size_t min_steal; // Raiz quadrada do tamanho total
     omp_lock_t lock; // trava
+#ifdef DDEBUG
+    trace_t trace[400];
+    size_t count;
+#endif
 
     Worker(){
         omp_init_lock(&lock);
@@ -48,10 +60,14 @@ public:
         const size_t remain = (global_last - global_first) % _nthr; // Sobras da divisão anterior
         first = chunk * _id + global_first + std::min(_id, remain); // Ponto inicial do intervalo
         last = first + chunk + static_cast<size_t>(_id < remain); // Ponto final
+        _working_first = _working_last = first;
         
         const size_t m   = last - first;  // Tamanho original do intervalo
         _seq_chunk = std::log2(m);  // Tamanho do chunk a ser extraído serialmente
         min_steal  = std::sqrt(m);  // Tamanho mínimo a ser roubado
+#ifdef DDEBUG
+        count = 0;
+#endif
     }
 
 private:
@@ -64,28 +80,33 @@ private:
  *   Caso detecte um conflito (algum ladrão rouba parte do trabalho que ele 
  *   extraíria), tenta extrair novamente.
  * 
- *   wrkr_d : estrutura com info. do worker
- *        f : o índice inicial do trabalho extraído
- *        l : o índice final do trabalho extraído
- * 
- *   returns : o tamanho do intervalo extraído
+ *   returns : true se pode extrair um intervalo maior que 0, false caso contrário
 */
     bool extract_seq(){
-        if (first < last){
-            _working_first = first;
-            _working_last = _working_first + _seq_chunk;
-            _working_last = std::min(static_cast<size_t>(last), _working_last);
-            first = _working_last;
-            //__sync_synchronize();
-            if (first > last) { // Conflito
-                omp_set_lock(&lock);
-                    _working_last = std::max(std::min(static_cast<size_t>(last), _working_first + _seq_chunk), _working_first);
-                    first = _working_last;
-                omp_unset_lock(&lock);
-            }
+        const size_t old_first = first;
+        _working_first = std::min(old_first + _seq_chunk, static_cast<size_t>(last));
+        first = _working_first;
+        if ((_working_first < last) && (_working_first > _working_last)){
+            _working_last  = _working_first;
+            _working_first = old_first;
+#ifdef DDEBUG
+            trace[count++] = {omp_get_wtime(), 'x', _working_first, _working_last, first, last};
+#endif
             return true;
         }
-        return false;
+        /* conflict detected: rollback and lock */
+        first = old_first;
+        omp_set_lock(&(lock));
+        _working_first = old_first;
+        if (_working_first < last)
+            first = _working_last = last;//std::min(old_first + _seq_chunk, static_cast<size_t>(last));
+        omp_unset_lock(&(lock));
+
+#ifdef DDEBUG
+        trace[count++] = {omp_get_wtime(), 'r', _working_first, _working_last, first, last};
+#endif
+        return (_working_first < first);
+
     }
 
 /*
@@ -99,57 +120,57 @@ private:
  *   A quantia de trabalho necessária é ((m - m')/2) e não pode ser menor que (sqrt(m)),
  *   onde m é o tamanho do intervalo e m' é o tamanho do intervalo já trabalhado.
  * 
- *    theft_d : estrutura com info. do ladrão
- *   v_wrkr_d : vetor de estruturas com info. dos workers
- *       nthr : número total de threads da aplicação
- * 
- *   returns : 1 se o roubo for bem sucedido, 0 do contrário
+ *   returns : true se o roubo for bem sucedido, false caso contrário
 */
     bool extract_par(){
         bool success = false;
         size_t remaining = _nthr - 1;
         size_t i;
+        
+        first = std::numeric_limits<size_t>::max();
 
         std::vector<bool> _visited(_nthr, false);
-        //std::fill(_visited.begin(), _visited.end(), true);
         _visited[_id] = true;
 
         // Enquanto houver intervalos que não foram inspecionadas
         while(remaining && !success){
-            //i = rand() % _nthr; // Sorteia uma intervalo
             for (i = rand() % _nthr; _visited[i]; i = (i+1) % _nthr); // Avança até um intervalo ainda não visto
             WorkerPtr& victim = _workers_array->at(i);
 
             // Testa se o intervalo não está travado e trava se estiver livre.
-            if (omp_test_lock(&(victim.lock))){
-                const size_t vic_l = victim.last, vic_f = victim.first; // cópias
-                const size_t half_left = (vic_l - vic_f) >> 1; // Metade do trabalho restante
-                const size_t steal_size = (half_left >= victim.min_steal) ? half_left : 0; // Tamanho do roubo
-                const size_t begin = vic_l - steal_size;
-
-                // O tamanho do roubo é maior que 1?
-                // O início é menor que o final para a vítima? - evita erros integer overflow
-                if ((steal_size > 1) && (vic_f < vic_l)){
-                    victim.last = begin;
-                    //__sync_synchronize();
-                    if (victim.last >= victim.first){ // Inicio a frente do inicio da vitima
-                        // Efetua o roubo, atualizando os intervalos
-                        omp_set_lock(&lock);
-                            last      = vic_l;
-                            first     = begin;
-                            min_steal = std::sqrt(steal_size);
-                        omp_unset_lock(&lock);
-                        _seq_chunk = std::log2(steal_size);
+            if ((victim.last - victim.min_steal) > victim.first) {
+                if (omp_test_lock(&(victim.lock))){
+                    const size_t chunk_size = (victim.last - victim.first) >> 1;
+                    const size_t _last = victim.last - chunk_size;
+                    last = _last;
+                    victim.last = _last; //victim.last = last;
+                    if (last <= victim.first){
+                        /* rollback and abort */
+                        victim.last = _last + chunk_size;
+#ifdef DDEBUG
+                        trace[count++] = {omp_get_wtime(), 't', _last, _last + chunk_size, victim.first, victim.last};
+#endif
+                        --remaining;
+                        _visited[i] = true;
+                    }
+                    else{
+                        first = _last;
+                        last  = _last + chunk_size;
+                        min_steal  = std::sqrt(chunk_size);
+                        min_steal  = std::max(min_steal, 4ul);
+                        _seq_chunk = std::log2(chunk_size);
+                        _seq_chunk = std::max(_seq_chunk, 1ul);
+#ifdef DDEBUG
+                        trace[count++] = {omp_get_wtime(), 's', _last, _last + chunk_size, victim.first, victim.last};
+#endif
                         success = true;
                     }
-                    else // Conflito: desfaz e aborta
-                        victim.last = vic_l;
+                    omp_unset_lock(&(victim.lock));
                 }
-                else { // Caso não houver trabalho suficiente
-                    _visited[i] = true; // Marca como visitado
-                    --remaining;        // Decrementa o total de intervalos restantes para inspeção
-                }
-                omp_unset_lock(&(victim.lock)); // Destrava o intervalo
+            }
+            else {
+                --remaining;
+                _visited[i] = true;
             }
         }
         return success;
@@ -178,14 +199,13 @@ public:
  *   kernel : função de processamento
  *     data : dados passados como argumentos à função
  *    first : início do laço
+ *     last : final do laço
  */
 template <class Function, class Data>
 void adpt_parallel_for(
     Function kernel, Data& data, size_t first, size_t last
 ){
     WorkerVec workers = std::make_shared<std::vector<WorkerPtr>>(omp_get_max_threads()); // Dados para os workers
-    //for (int i=0; i < omp_get_max_threads(); i++)
-    //    workers->push_back(std::move(Worker<Function,Data>()));
 
     #pragma omp parallel shared(kernel, data, workers, first, last)
     {
@@ -196,4 +216,12 @@ void adpt_parallel_for(
         #pragma omp barrier
         m_worker.work(kernel, data);
     }
+
+#ifdef DDEBUG
+    for (int i=0; i< omp_get_max_threads(); i++){
+        WorkerPtr& worker = workers->at(i);
+        for (int j=0; j<worker.count; j++)
+            fprintf(stderr, "%.12lf %d %c %lu %lu %lu %lu\n", worker.trace[j].time, i, worker.trace[j].type, worker.trace[j].wf, worker.trace[j].wl, worker.trace[j].f, worker.trace[j].l);
+    }
+#endif
 }

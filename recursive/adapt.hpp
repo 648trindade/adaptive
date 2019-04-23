@@ -19,6 +19,7 @@ inline unsigned int log_2(unsigned int a) {
 }
 
 class Work {
+  protected:
     omp_lock_t _lock;
 
   protected:

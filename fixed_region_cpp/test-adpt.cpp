@@ -22,7 +22,7 @@ int main(int argc, char* argv[]){
     std::vector<int> data(s, 0);
     int run = 1;
 
-    while(run) {
+    while(run && run < 100000) {
         //if (run++ % 1000 == 0)
         //    printf("Run %d\n", run-1);
         run++;
