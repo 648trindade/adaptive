@@ -14,7 +14,7 @@ void func(std::vector<int>& vec, size_t i){
     // if (accum == ((i+1)*(i+2)/2))
         // adiciona um dígito decimal referente ao número da thread
         //printf("%d %lu\n", omp_get_thread_num(), i);
-        vec[i] = vec[i] * 10 + omp_get_thread_num() + 1;
+        
 }
 
 int main(int argc, char* argv[]){
@@ -22,14 +22,16 @@ int main(int argc, char* argv[]){
     std::vector<int> data(s, 0);
     int run = 1;
 
-    while(run && run < 100000) {
-        //if (run++ % 1000 == 0)
-        //    printf("Run %d\n", run-1);
-        run++;
+    while(run) {
+        if (run++ % 10000 == 0)
+           printf("Run %d\n", run-1);
+        // run++;
 
         std::fill(data.begin(), data.end(), 0);
 
-        adpt_parallel_for(func, data, 0, s);
+        adpt_parallel_for([&data](size_t i){
+            data[i] = data[i] * 10 + omp_get_thread_num() + 1;
+        }, 0, s);
         
         for(size_t j = 0; j < s; j++)
             if (data.at(j) > 9 || data.at(j) == 0){

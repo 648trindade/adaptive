@@ -9,7 +9,7 @@
 
 #define ALPHA 1
 
-#define WorkerPtr Worker<Function, Data>
+#define WorkerPtr Worker<Function>
 #define WorkerVec std::shared_ptr<std::vector<WorkerPtr>>
 
 #ifdef DDEBUG
@@ -20,7 +20,7 @@ typedef struct{
 }trace_t;
 #endif
 
-template <class Function, class Data>
+template <class Function>
 class Worker{
 private:
     size_t _nthr;
@@ -137,8 +137,11 @@ private:
             for (i = rand() % _nthr; _visited[i]; i = (i+1) % _nthr); // Avança até um intervalo ainda não visto
             WorkerPtr& victim = _workers_array->at(i);
 
+            const size_t pre_chunk_size = (victim.last - victim.first) >> 1;
+            const size_t pre_steal_size = (pre_chunk_size >= victim.min_steal) \
+                                          ? pre_chunk_size : static_cast<size_t>(victim.last);
             // Testa se o intervalo não está travado e trava se estiver livre.
-            if ((victim.last - victim.min_steal) > victim.first) {
+            if ((victim.last - pre_steal_size) > victim.first) {
                 if (omp_test_lock(&(victim.lock))){
                     const size_t chunk_size = (victim.last - victim.first) >> 1;
                     const size_t _last = victim.last - chunk_size;
@@ -147,11 +150,11 @@ private:
                     if (last <= victim.first){
                         /* rollback and abort */
                         victim.last = _last + chunk_size;
+                        --remaining;
+                        _visited[i] = true;
 #ifdef DDEBUG
                         trace[count++] = {omp_get_wtime(), 't', _last, _last + chunk_size, victim.first, victim.last};
 #endif
-                        --remaining;
-                        _visited[i] = true;
                     }
                     else{
                         first = _last;
@@ -160,10 +163,10 @@ private:
                         min_steal  = std::max(min_steal, 4ul);
                         _seq_chunk = std::log2(chunk_size);
                         _seq_chunk = std::max(_seq_chunk, 1ul);
+                        success = true;
 #ifdef DDEBUG
                         trace[count++] = {omp_get_wtime(), 's', _last, _last + chunk_size, victim.first, victim.last};
 #endif
-                        success = true;
                     }
                     omp_unset_lock(&(victim.lock));
                 }
@@ -178,12 +181,12 @@ private:
 
 public:
 
-    void work(Function kernel, Data& data){
+    void work(Function kernel){
         while(true){ // Itera enquanto houver trabalho a ser feito
             // Itera enquanto houver trabalho sequencial a ser feito
             while (extract_seq())
                 for (size_t i = _working_first; i < _working_last; i++)
-                    kernel(data, i);
+                    kernel(i);
             
             // Tenta roubar trabalho, se não conseguir, sai do laço
             if (!extract_par())
@@ -197,24 +200,23 @@ public:
  * ---------------------------
  * 
  *   kernel : função de processamento
- *     data : dados passados como argumentos à função
  *    first : início do laço
  *     last : final do laço
  */
-template <class Function, class Data>
+template <class Function>
 void adpt_parallel_for(
-    Function kernel, Data& data, size_t first, size_t last
+    Function kernel, size_t first, size_t last
 ){
     WorkerVec workers = std::make_shared<std::vector<WorkerPtr>>(omp_get_max_threads()); // Dados para os workers
 
-    #pragma omp parallel shared(kernel, data, workers, first, last)
+    #pragma omp parallel shared(kernel, workers, first, last)
     {
         size_t  thr_id = omp_get_thread_num();  // ID desta thread
         WorkerPtr& m_worker = workers->at(thr_id); // pega o worker desta thread
         m_worker.initialize(thr_id, first, last, workers); // inicia o worker
         
         #pragma omp barrier
-        m_worker.work(kernel, data);
+        m_worker.work(kernel);
     }
 
 #ifdef DDEBUG
@@ -224,4 +226,5 @@ void adpt_parallel_for(
             fprintf(stderr, "%.12lf %d %c %lu %lu %lu %lu\n", worker.trace[j].time, i, worker.trace[j].type, worker.trace[j].wf, worker.trace[j].wl, worker.trace[j].f, worker.trace[j].l);
     }
 #endif
+    workers->clear();
 }
