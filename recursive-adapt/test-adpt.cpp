@@ -12,10 +12,10 @@ int main(int argc, char* argv[]){
     vector<int> data(1000);
     int run = 1;
 
-    while(run && run < 100000) {
-        // if (run++ % 1 == 0)
-        //     cout << "Run " << (run-1) << endl;
-        run++;
+    while(run) {
+        if (run++ % 10000 == 0)
+            cout << "Run " << (run-1) << endl;
+        // run++;
 
         for(size_t j = 0; j < s; j++)
             data[j] = 0;
