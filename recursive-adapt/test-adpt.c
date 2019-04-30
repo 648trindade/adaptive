@@ -1,7 +1,7 @@
 #include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "adaptive.h"
+#include "parallel_for.h"
 
 int* data;
 

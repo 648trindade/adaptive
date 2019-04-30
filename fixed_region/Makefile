@@ -1,14 +1,22 @@
 
 CC = gcc
+CXX = g++
 CFLAGS = -Wall -O3 -fopenmp -lm
+CXXFLAGS = $(CFLAGS) -std=c++11
 
-all: test
+ifdef DDEBUG
+CXXFLAGS += -DDDEBUG
+endif
 
-test: test-adpt.c lib
-	$(CC) test-adpt.c adaptive.o $(CFLAGS) -lm -o test-adpt
+all: test ctest
 
-lib: adaptive.c
-	$(CC) -c adaptive.c $(CFLAGS)
+test: test-adpt.cpp
+	$(CXX) test-adpt.cpp $(CXXFLAGS) -o test-adpt
+
+ctest: test-adpt.c
+	$(CXX) adaptive_c_connector.cpp $(CXXFLAGS) -fno-exceptions -c
+	$(CC) test-adpt.c  $(CFLAGS) -c 
+	$(CC) test-adpt.o adaptive_c_connector.o $(CFLAGS) -lstdc++ -o test-adpt-c
 
 clean:
-	rm -f teste-adpt *.o
+	rm -f test-adpt test-adpt-c *.o

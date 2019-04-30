@@ -1,5 +1,5 @@
-#ifndef __ADAPTIVE_H__
-#define __ADAPTIVE_H__
+#ifndef __PARALLEL_FOR_H__
+#define __PARALLEL_FOR_H__
 
 #include <stdio.h>
 
@@ -13,4 +13,4 @@ void c_parallel_for(void (*kernel)(size_t), size_t first, size_t last);
 } //extern "C"
 #endif
 
-#endif //__ADAPTIVE_H__
+#endif //__PARALLEL_FOR_H__
