@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 void c_parallel_for(void (*kernel)(size_t), size_t first, size_t last){
-    adpt_parallel_for(kernel, first, last);
+    adapt::parallel_for(first, last, kernel);
 }
 
 #ifdef __cplusplus
