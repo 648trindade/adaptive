@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <memory>
 #include <limits>
+#include <bitset>
 
 #define ADPT_ALPHA 1
 
@@ -132,7 +133,7 @@ size_t count;
         
         first = std::numeric_limits<Index>::max();
 
-        std::vector<bool> _visited(_nthr, false);
+        std::array<bool, 64> _visited(_nthr, false);
         _visited[_id] = true;
 
         // While there are sub-ranges that are not inspected yet
