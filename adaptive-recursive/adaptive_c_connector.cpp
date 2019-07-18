@@ -1,5 +1,5 @@
-#include "parallel_for.h"
-#include "parallel_for.hpp"
+#include "adaptive.h"
+#include "adaptive.hpp"
 
 #ifdef __cplusplus
 extern "C" {
