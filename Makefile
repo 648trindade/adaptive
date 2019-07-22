@@ -1,7 +1,7 @@
 
-CXX = g++
-CC = gcc
-CFLAGS = -Wall -O3 -fopenmp -lm
+CXX = clang++
+CC = clang
+CFLAGS = -Wall -O3 -stdlib=libstdc++ -fopenmp=libomp -lm
 CXXFLAGS = $(CFLAGS) -std=c++11 #-DCONFIG_VERBOSE
 
 all: adpt adpt-rec naive-rec
