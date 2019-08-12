@@ -1,7 +1,7 @@
 
 CXX = g++
 CC = gcc
-CFLAGS = -Wall -O3 -fopenmp -lm
+CFLAGS = -Wall -O2 -g -fopenmp -lm
 CXXFLAGS = $(CFLAGS) -std=c++11 #-DCONFIG_VERBOSE
 
 all: adpt adpt-rec naive-rec

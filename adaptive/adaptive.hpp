@@ -133,7 +133,8 @@ size_t count;
         
         first = std::numeric_limits<Index>::max();
 
-        std::array<bool, 64> _visited(_nthr, false);
+        std::array<bool, 64> _visited;
+        _visited.fill(false);
         _visited[_id] = true;
 
         // While there are sub-ranges that are not inspected yet
