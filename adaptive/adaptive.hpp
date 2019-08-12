@@ -1,12 +1,12 @@
 #include <vector> 
-#include <omp.h>    //OpenMP
-#include <string.h> //memset
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <algorithm>
 #include <memory>
 #include <limits>
-#include <bitset>
+#include <omp.h>    //OpenMP
+#include <string.h> //memset
 
 #define ADPT_ALPHA 1
 

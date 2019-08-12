@@ -67,6 +67,10 @@ template <class Idx, class Op> class ParallelForWork : public Work {
                 std::shared_ptr<ParallelForWork> wp(new ParallelForWork<Idx, Op>(_first, _first + j, _op, i));
                 sw = std::move(wp);
                 omp_unset_lock(&_lock);
+#if 0
+        printf("%d:%s (%zu, %zu)\n", omp_get_thread_num(), __FUNCTION__,
+               i, j);
+#endif
                 return true;
             }
         }
@@ -78,7 +82,8 @@ template <class Idx, class Op> class ParallelForWork : public Work {
     void localcompute() {
         Idx ibegin = _first + _beg_local;
         Idx iend = _first + _end_local;
-#if defined(CONFIG_VERBOSE)
+//#if defined(CONFIG_VERBOSE)
+#if 0
         printf("%d:%s (%zu, %zu)\n", omp_get_thread_num(), __FUNCTION__,
                _beg_local, _end_local);
 #endif

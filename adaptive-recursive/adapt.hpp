@@ -75,10 +75,11 @@ inline void run_adapt(WorkPtr wp) {
 #pragma omp parallel
 #pragma omp master
     {
-#pragma omp task shared(wp) untied
-        AdaptSteal()(wp);
+#pragma omp task shared(wp)         
         while (wp->ExtractNextSeq())
             wp->LocalCompute(); // nanoloop
+#pragma omp task shared(wp) untied 
+        AdaptSteal()(wp);
 #pragma omp taskwait
     }
 }
