@@ -13,6 +13,7 @@ The hybrid adaptive scheduling algorithm uses _work stealing_ in order to balanc
 The Adaptive's API is based on Thread Building Blocks API. Currently we support two kinds of parallel loop:
 
 * Common parallel loops:
+
 ```c++
 void adapt::parallel_loop(
     T start, T end, 
@@ -20,6 +21,7 @@ void adapt::parallel_loop(
 );
 ```
 * Reduction parallel loops
+
 ```c++
 V adapt::parallel_reduce(
     T start, T end, 
