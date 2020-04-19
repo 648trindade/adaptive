@@ -1,8 +1,16 @@
 image: silkeh/clang:8
 
+cache:
+  key: apt-cache
+  paths:
+  - apt-cache/
+
 before_script:
+  - export APT_CACHE_DIR=${PWD}/apt-cache
+  - mkdir -pv $APT_CACHE_DIR
+  - apt-get update -yq
+  - apt-get -o dir::cache::archives="$APT_CACHE_DIR" install -y libtbb-dev
   - export LD_LIBRARY_PATH=${PWD}/build/:${LD_LIBRARY_PATH}
-  - sudo apt install libtbb-dev
 
 stages:
   - build
@@ -13,8 +21,11 @@ build:
   script:
     - mkdir build
     - cd build
-    - cmake .. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release
+    - cmake .. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release -DCMAKE_MODULE_PATH=/usr/share/cmake/Modules
     - make -j
+  artifacts:
+    paths:
+      - build/
 
 # run tests using the binary built before
 test:
