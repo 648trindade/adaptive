@@ -6,3 +6,4 @@ test-adpt
 RNotebook
 test-adapt-c
 c*_example_*
+build/
