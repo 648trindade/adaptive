@@ -319,6 +319,24 @@ public:
   }
 }; // ReductionWorker
 
+class AtomicBarrier {
+  std::atomic<size_t> _counter;
+  size_t participants;
+public:
+  AtomicBarrier() : _counter(0), participants(1){}
+  AtomicBarrier(int _participants) : _counter(0), participants(_participants) {}
+  void set_participants(size_t _participants) {
+    _counter = 0;
+    participants = _participants;
+  }
+  void reset() { _counter = 0; }
+  void wait() {
+    size_t partial = _counter++;
+    size_t end = partial - (partial % participants) + participants;
+    while(_counter < end);
+  }
+};
+
 class ThreadHandler {
 private:
   bool stop;
@@ -327,7 +345,7 @@ private:
 public:
   pthread_t master;
   std::atomic<int> counter;
-  pthread_barrier_t barrier;
+  AtomicBarrier barrier;
   std::array<cpu_set_t, ADPT_MAX_THREADS> cpusets;
   std::array<AbstractWorker *, ADPT_MAX_THREADS> absWorkers;
 
@@ -366,7 +384,7 @@ void parallel_for(Index first, Index last, Function local_compute) {
 
   // this thread work
   __internal__::thread_handler.work(0);
-  pthread_barrier_wait(&__internal__::thread_handler.barrier);
+  __internal__::thread_handler.barrier.wait();
 
   for (size_t i = 0; i < __internal__::num_threads; i++) delete workers[i];
   workers.clear();
@@ -400,7 +418,7 @@ Value parallel_reduce(const Index first,
 
   // this thread work
   __internal__::thread_handler.work(0);
-  pthread_barrier_wait(&__internal__::thread_handler.barrier);
+  __internal__::thread_handler.barrier.wait();
 
   Value reduction_value = static_cast<redworker_t *>(workers[0])->reduction_value;
 

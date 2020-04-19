@@ -40,8 +40,8 @@ ThreadHandler::ThreadHandler() : stop(false), counter(1) {
   num_threads  = get_concurrency();
   alpha        = get_alpha();
   grain_number = get_grain();
-  // printf("Running on %zu threads\n", num_threads);
-  pthread_barrier_init(&barrier, nullptr, num_threads);
+
+  barrier.set_participants(num_threads);
   for (size_t i = 1; i < num_threads; i++) pthread_create(&threads[i], nullptr, ThreadHandler::spawn_worker, this);
   ThreadHandler::spawn_worker(this);
 }
@@ -50,19 +50,18 @@ ThreadHandler::~ThreadHandler() {
   stop = true;
   work(0);
   for (size_t i = 1; i < num_threads; i++) pthread_join(threads[i], nullptr);
-  pthread_barrier_destroy(&barrier);
 }
 
 void ThreadHandler::work(int my_id) {
   do {
-    pthread_barrier_wait(&barrier); // wait for worker creation
-    if (stop) break;                // program exited
+    barrier.wait();  // wait for worker creation
+    if (stop) break; // program exited
 
     AbstractWorker &m_worker = *(absWorkers[my_id]);
     m_worker.work();
 
-    if (my_id) pthread_barrier_wait(&barrier); // wait for posterior worker deletion
-  } while (my_id);                             // do not loop if master thread
+    if (my_id) barrier.wait(); // wait for posterior worker deletion
+  } while (my_id);             // do not loop if master thread
 }
 
 static void pin_thread(cpu_set_t *cpuset, const int thread_id) {
