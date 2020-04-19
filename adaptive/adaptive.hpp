@@ -32,8 +32,8 @@
 #define IS_LITTLE(id) (id < 2)
 #endif
 
-#define MIN(x, y) ((x < y)? x : y)
-#define MAX(x, y) ((x > y)? x : y)
+#define MIN(x, y) ((x < y) ? x : y)
+#define MAX(x, y) ((x > y) ? x : y)
 
 #define ADPT_MAX_THREADS 256
 
@@ -51,7 +51,8 @@ public:
   virtual void work() = 0;
 };
 
-template <class Index> class Worker : public AbstractWorker {
+template <class Index>
+class Worker : public AbstractWorker {
 protected:
   const Index _id;
   const Index _nthr;
@@ -70,30 +71,29 @@ public:
   pthread_mutex_t lock;     // worker lock
   bool is_LITTLE;
 
-  Worker(const size_t thr_id, const Index global_first, const Index global_last, std::vector<Worker *> *workers_array)
-      : _id(thr_id), _nthr(num_threads), _workers_array(workers_array) {
+  Worker(const size_t thr_id, const Index global_first, const Index global_last, std::vector<Worker *> *workers_array) :
+      _id(thr_id), _nthr(num_threads), _workers_array(workers_array) {
     pthread_mutex_init(&this->lock, NULL);
     is_LITTLE = IS_LITTLE(_id);
 
 #ifdef DISTRIB_BY_DEMAND // thread 0 starts with entire range
     first = (thr_id == 0) ? global_first : Index(0);
-    last = (thr_id == 0) ? global_last : Index(0);
+    last  = (thr_id == 0) ? global_last : Index(0);
 #elif DISTRIB_BY_ALPHA // big cores have initial range ALPHA times bigger
     const Index v_nthr = (num_threads - num_big_cores) + (num_big_cores * alpha);
     const Index v_size = (is_LITTLE) ? 1 : alpha;
-    Index v_id = 0;
-    for (Index i = 0; i < _id; i++)
-      v_id += (IS_LITTLE(i) ? 1 : alpha);
-    const Index chunk = (global_last - global_first) / v_nthr;    // size of initial sub-range (integer division)
-    const Index remain = (global_last - global_first) % v_nthr;   // remains of integer division
-    first = chunk * v_id + global_first + MIN(v_id, remain); // first iteration of sub-range
+    Index v_id         = 0;
+    for (Index i = 0; i < _id; i++) v_id += (IS_LITTLE(i) ? 1 : alpha);
+    const Index chunk  = (global_last - global_first) / v_nthr; // size of initial sub-range (integer division)
+    const Index remain = (global_last - global_first) % v_nthr; // remains of integer division
+    first              = chunk * v_id + global_first + MIN(v_id, remain); // first iteration of sub-range
     // last (+1) iteration of sub-range
-    last = first + (chunk * v_size) + Index((v_id < remain) ? MIN((remain - v_id), v_size) : 0);
+    last           = first + (chunk * v_size) + Index((v_id < remain) ? MIN((remain - v_id), v_size) : 0);
 #else                  // divides initial range equally
-    const Index chunk = (global_last - global_first) / _nthr;          // size of initial sub-range (integer division)
-    const Index remain = (global_last - global_first) % _nthr;         // remains of integer division
-    first = chunk * _id + global_first + MIN(Index(_id), remain); // first iteration of sub-range
-    last = first + chunk + static_cast<Index>(_id < remain);           // last (+1) iteration of sub-range
+    const Index chunk  = (global_last - global_first) / _nthr; // size of initial sub-range (integer division)
+    const Index remain = (global_last - global_first) % _nthr; // remains of integer division
+    first              = chunk * _id + global_first + MIN(Index(_id), remain); // first iteration of sub-range
+    last               = first + chunk + static_cast<Index>(_id < remain);     // last (+1) iteration of sub-range
 #endif
     recalc_internal();
   }
@@ -103,20 +103,19 @@ public:
 protected:
   inline void recalc_internal() {
     _working_first = _working_last = copy_first = first;
-    const Index m = last - copy_first; // original size of sub-range
+    const Index m                               = last - copy_first; // original size of sub-range
 #ifdef GRAIN_FRACTION
     seq_chunk = MAX(m / grain_number, Index(1));
 #elif GRAIN_LOG
-    seq_chunk = MAX(Index(std::log2(m)), Index(1)); // chunk/grain size to serial extraction
+    seq_chunk      = MAX(Index(std::log2(m)), Index(1)); // chunk/grain size to serial extraction
 #else
-    seq_chunk = grain_number;
+    seq_chunk          = grain_number;
 #endif
 #ifdef GRAIN_SMALLER_LITTLE
-    if (is_LITTLE)
-      seq_chunk = MAX(seq_chunk / alpha, Index(1)); // LITTLE cores have half of grain
+    if (is_LITTLE) seq_chunk = MAX(seq_chunk / alpha, Index(1)); // LITTLE cores have half of grain
 #endif
     half_range = m >> 1;
-    min_steal = MAX(Index(std::sqrt(m)), Index(1)); // minimal size to steal
+    min_steal  = MAX(Index(std::sqrt(m)), Index(1)); // minimal size to steal
   }
 
   /*
@@ -133,17 +132,17 @@ protected:
     // const Index old_first = first;
 #ifdef EXTRACT_THRESHOLD
     const Index chunk = ((last - _working_last) > (seq_chunk << 2)) ? seq_chunk : 1;
-    _working_first = MIN((copy_first + chunk), static_cast<Index>(last));
+    _working_first    = MIN((copy_first + chunk), static_cast<Index>(last));
 #else
     _working_first = MIN((copy_first + seq_chunk), static_cast<Index>(last));
 #endif
     if (_working_first > _working_last) {
       first = _working_first;
       if (_working_first < last) {
-        _working_last = _working_first;
+        _working_last   = _working_first;
         const Index tmp = copy_first;
-        copy_first = _working_first;
-        _working_first = tmp;
+        copy_first      = _working_first;
+        _working_first  = tmp;
         return true;
       }
       first = copy_first; // conflict
@@ -151,8 +150,7 @@ protected:
     /* conflict detected: rollback and lock */
     pthread_mutex_lock(&lock);
     _working_first = copy_first;
-    if (_working_first < last)
-      first = _working_last = copy_first = last;
+    if (_working_first < last) first = _working_last = copy_first = last;
     pthread_mutex_unlock(&lock);
 
     return (_working_first < first);
@@ -175,7 +173,7 @@ protected:
     size_t i;
 
     first = std::numeric_limits<Index>::max();
-    last = std::numeric_limits<Index>::max();
+    last  = std::numeric_limits<Index>::max();
 
     std::array<bool, ADPT_MAX_THREADS> _visited;
     _visited.fill(false);
@@ -202,11 +200,10 @@ protected:
           } while (victim.first > (vic_last - steal_size) && steal_size);
 #else // STEAL_HALF_REMAINING
           const Index remain = vic_last - victim.first;
-          steal_size = (remain > 0) ? MAX(remain >> 1, Index(1)) : 0;
+          steal_size         = (remain > 0) ? MAX(remain >> 1, Index(1)) : 0;
 #endif
 #ifdef STEAL_SMALLER_LITTLE
-          if (is_LITTLE)
-            steal_size /= alpha; // cut steal by half
+          if (is_LITTLE) steal_size /= alpha; // cut steal by half
 #endif
 #ifdef STEAL_THRESHOLD_LITTLE
           if ((steal_size < victim.min_steal) && is_LITTLE) {
@@ -227,7 +224,7 @@ protected:
               victim.seq_chunk = MAX(victim.seq_chunk >> 1, Index(1));
 #endif
               pthread_mutex_unlock(&(victim.lock));
-              last = vic_last;
+              last  = vic_last;
               first = new_last;
               recalc_internal();
               return true;
@@ -244,13 +241,18 @@ protected:
   }
 }; // namespace __internal__
 
-template <class Index, class Function> class ForWorker : public Worker<Index> {
+template <class Index, class Function>
+class ForWorker : public Worker<Index> {
   const Function &local_compute;
 
 public:
-  ForWorker(const size_t thr_id, const Index global_first, const Index global_last,
-            std::vector<Worker<Index> *> *workers_array, const Function &_local_compute)
-      : Worker<Index>(thr_id, global_first, global_last, workers_array), local_compute(_local_compute) {}
+  ForWorker(const size_t thr_id,
+            const Index global_first,
+            const Index global_last,
+            std::vector<Worker<Index> *> *workers_array,
+            const Function &_local_compute) :
+      Worker<Index>(thr_id, global_first, global_last, workers_array),
+      local_compute(_local_compute) {}
 
   virtual void work() override {
     while (true) {                // Iterates while there are work to be done
@@ -258,13 +260,13 @@ public:
         local_compute(this->_working_first, this->_working_last);
 
       // Tries to steal work. If there are no work to steal, exits
-      if (!this->extract_par())
-        return;
+      if (!this->extract_par()) return;
     }
   }
 };
 
-template <class Index, class Function, class Value, class Reduction> class ReductionWorker : public Worker<Index> {
+template <class Index, class Function, class Value, class Reduction>
+class ReductionWorker : public Worker<Index> {
   const Function &local_compute;
   const Reduction &reduction;
   const Value identity;
@@ -273,11 +275,15 @@ public:
   Value reduction_value;
   pthread_mutex_t red_lock;
 
-  ReductionWorker(const size_t thr_id, const Index global_first, const Index global_last, const Value _identity,
-                  std::vector<Worker<Index> *> *workers_array, const Function &_local_compute,
-                  const Reduction &_reduction)
-      : Worker<Index>(thr_id, global_first, global_last, workers_array), local_compute(_local_compute),
-        reduction(_reduction), identity(_identity), reduction_value(_identity) {
+  ReductionWorker(const size_t thr_id,
+                  const Index global_first,
+                  const Index global_last,
+                  const Value _identity,
+                  std::vector<Worker<Index> *> *workers_array,
+                  const Function &_local_compute,
+                  const Reduction &_reduction) :
+      Worker<Index>(thr_id, global_first, global_last, workers_array),
+      local_compute(_local_compute), reduction(_reduction), identity(_identity), reduction_value(_identity) {
     pthread_mutex_init(&red_lock, nullptr);
     pthread_mutex_lock(&red_lock);
   }
@@ -288,12 +294,11 @@ public:
     while (true) {                  // Iterates while there are work to be done
       while (this->extract_seq()) { // Iterates while there are sequential work to be done
         const Value partial_value = this->local_compute(this->_working_first, this->_working_last, identity);
-        reduction_value = reduction(reduction_value, partial_value);
+        reduction_value           = reduction(reduction_value, partial_value);
       }
 
       // Tries to steal work. If there are no work to steal, exits
-      if (!this->extract_par())
-        break;
+      if (!this->extract_par()) break;
     }
 
     // tree reduction
@@ -347,14 +352,15 @@ extern size_t get_num_threads();
  *            last : end of loop
  *   local_compute : loop body
  */
-template <class Function, class Index> void parallel_for(Index first, Index last, Function local_compute) {
+template <class Function, class Index>
+void parallel_for(Index first, Index last, Function local_compute) {
   using forworker_t = __internal__::ForWorker<Index, Function>;
-  using worker_t = __internal__::Worker<Index>;
+  using worker_t    = __internal__::Worker<Index>;
   std::vector<worker_t *> workers(__internal__::num_threads, nullptr); // Data for workers
 
   for (size_t i = 0; i < __internal__::num_threads; i++) {
-    forworker_t *worker = new forworker_t(i, first, last, &workers, local_compute);
-    workers[i] = static_cast<worker_t *>(worker);
+    forworker_t *worker                        = new forworker_t(i, first, last, &workers, local_compute);
+    workers[i]                                 = static_cast<worker_t *>(worker);
     __internal__::thread_handler.absWorkers[i] = static_cast<__internal__::AbstractWorker *>(worker);
   }
 
@@ -362,8 +368,7 @@ template <class Function, class Index> void parallel_for(Index first, Index last
   __internal__::thread_handler.work(0);
   pthread_barrier_wait(&__internal__::thread_handler.barrier);
 
-  for (size_t i = 0; i < __internal__::num_threads; i++)
-    delete workers[i];
+  for (size_t i = 0; i < __internal__::num_threads; i++) delete workers[i];
   workers.clear();
 }
 
@@ -378,15 +383,18 @@ template <class Function, class Index> void parallel_for(Index first, Index last
  *       reduction : reduction function
  */
 template <class Function, class Index, class Reduction, class Value>
-Value parallel_reduce(const Index first, const Index last, const Value identity, const Function &local_compute,
+Value parallel_reduce(const Index first,
+                      const Index last,
+                      const Value identity,
+                      const Function &local_compute,
                       const Reduction &reduction) {
   using redworker_t = __internal__::ReductionWorker<Index, Function, Value, Reduction>;
-  using worker_t = __internal__::Worker<Index>;
+  using worker_t    = __internal__::Worker<Index>;
   std::vector<worker_t *> workers(__internal__::num_threads, nullptr); // Data for workers
 
   for (size_t i = 0; i < __internal__::num_threads; i++) {
     redworker_t *worker = new redworker_t(i, first, last, identity, &workers, local_compute, reduction);
-    workers[i] = static_cast<worker_t *>(worker);
+    workers[i]          = static_cast<worker_t *>(worker);
     __internal__::thread_handler.absWorkers[i] = static_cast<__internal__::AbstractWorker *>(worker);
   }
 
@@ -396,8 +404,7 @@ Value parallel_reduce(const Index first, const Index last, const Value identity,
 
   Value reduction_value = static_cast<redworker_t *>(workers[0])->reduction_value;
 
-  for (size_t i = 0; i < __internal__::num_threads; i++)
-    delete workers[i];
+  for (size_t i = 0; i < __internal__::num_threads; i++) delete workers[i];
   workers.clear();
 
   return reduction_value;

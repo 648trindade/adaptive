@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   // std::vector<int> vcopy(20000000);
   std::iota(begin(v), end(v), 1.0);
 
-  std::shuffle(begin(v), end(v), std::mt19937{std::random_device{}()});
+  std::shuffle(begin(v), end(v), std::mt19937 {std::random_device {}()});
   // std::copy(begin(v), end(v), begin(vcopy));
   auto t0 = omp_get_wtime();
 
@@ -32,16 +32,14 @@ int main(int argc, char **argv) {
   adapt::parallel_for(size_t(0), n, [&v](size_t b, size_t e) {
     for (size_t i = b; i < e; i++) {
       double res = 0.0;
-      for (auto j = 0; j < 10000; j++)
-        res += cos(v[i]) + sin(v[i]);
+      for (auto j = 0; j < 10000; j++) res += cos(v[i]) + sin(v[i]);
       v[i] = res;
     }
   });
 #elif TBB
   tbb::parallel_for(size_t(0), n, [&v](size_t i) {
     double res = 0.0;
-    for (auto j = 0; j < 10000; j++)
-      res += cos(v[i]) + sin(v[i]);
+    for (auto j = 0; j < 10000; j++) res += cos(v[i]) + sin(v[i]);
     v[i] = res;
   });
 #else
@@ -50,12 +48,11 @@ int main(int argc, char **argv) {
 #endif
   for (auto i = 0; i < n; i++) {
     double res = 0.0;
-    for (auto j = 0; j < 10000; j++)
-      res += cos(v[i]) + sin(v[i]);
+    for (auto j = 0; j < 10000; j++) res += cos(v[i]) + sin(v[i]);
     v[i] = res;
   }
 #endif
-  auto t1 = omp_get_wtime();
+  auto t1   = omp_get_wtime();
   auto time = t1 - t0;
 
 #if 0

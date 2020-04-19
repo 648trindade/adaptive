@@ -31,14 +31,14 @@ FixNamespaceComments: true
 IncludeBlocks: Regroup
 # IndentCaseBlocks: false
 IndentCaseLabels: false
-IndentPPDirectives: BeforeHash
+IndentPPDirectives: None
 KeepEmptyLinesAtTheStartOfBlocks: false
 NamespaceIndentation: None
 PointerAlignment: Right
 SortIncludes: true
 SpaceAfterCStyleCast: false
 SpaceAfterLogicalNot: false
-SpaceAfterTemplateKeyword: false
+SpaceAfterTemplateKeyword: true
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeCpp11BracedList: true
 SpaceBeforeCtorInitializerColon: true
