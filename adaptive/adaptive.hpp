@@ -68,25 +68,10 @@ class AtomicMutex {
   std::atomic<bool> locked;
 
 public:
-  AtomicMutex() : locked(false) {}
-  void lock() {
-    bool is_locked = false;
-    while (!locked.compare_exchange_strong(is_locked, true, std::memory_order_release, std::memory_order_relaxed)) {
-      is_locked = false;
-    }
-    current_owner = pthread_self();
-  }
-  void unlock() {
-    if (current_owner == pthread_self()) locked = false;
-  }
-  bool try_lock() {
-    bool is_locked = false;
-    if (locked.compare_exchange_strong(is_locked, true, std::memory_order_release, std::memory_order_relaxed)) {
-      current_owner = pthread_self();
-      return true;
-    }
-    return false;
-  }
+  AtomicMutex();
+  void lock();
+  void unlock();
+  bool try_lock();
 };
 
 class AbstractWorker {
