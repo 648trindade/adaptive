@@ -35,6 +35,26 @@ static size_t get_grain() {
   return grain;
 }
 
+// AtomicBarrier =======================================================================================================
+
+AtomicBarrier::AtomicBarrier() : _counter(0), participants(1) {}
+
+AtomicBarrier::AtomicBarrier(int _participants) : _counter(0), participants(_participants) {}
+
+void AtomicBarrier::set_participants(size_t _participants) {
+  _counter     = 0;
+  participants = _participants;
+}
+
+void AtomicBarrier::reset() { _counter = 0; }
+
+void AtomicBarrier::wait() {
+  size_t partial = _counter++;
+  size_t end     = partial - (partial % participants) + participants;
+  while (_counter < end)
+    ;
+}
+
 ThreadHandler::ThreadHandler() : stop(false), counter(1) {
   master       = pthread_self();
   num_threads  = get_concurrency();

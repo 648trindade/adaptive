@@ -46,6 +46,21 @@ extern size_t num_threads;
 extern size_t alpha;
 extern size_t grain_number;
 
+// AtomicBarrier =======================================================================================================
+
+class AtomicBarrier {
+private:
+  std::atomic<size_t> _counter;
+  size_t participants;
+
+public:
+  AtomicBarrier();
+  AtomicBarrier(int _participants);
+  void set_participants(size_t _participants);
+  void reset();
+  void wait();
+};
+
 class AbstractWorker {
 public:
   virtual void work() = 0;
@@ -318,24 +333,6 @@ public:
     pthread_mutex_unlock(&red_lock);
   }
 }; // ReductionWorker
-
-class AtomicBarrier {
-  std::atomic<size_t> _counter;
-  size_t participants;
-public:
-  AtomicBarrier() : _counter(0), participants(1){}
-  AtomicBarrier(int _participants) : _counter(0), participants(_participants) {}
-  void set_participants(size_t _participants) {
-    _counter = 0;
-    participants = _participants;
-  }
-  void reset() { _counter = 0; }
-  void wait() {
-    size_t partial = _counter++;
-    size_t end = partial - (partial % participants) + participants;
-    while(_counter < end);
-  }
-};
 
 class ThreadHandler {
 private:
