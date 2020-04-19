@@ -1,0 +1,27 @@
+image: silkeh/clang:8
+
+stages:
+  - build
+  - test
+
+prepare_build:
+  stage: build
+  script:
+    - mkdir build
+    - cd build
+    - cmake .. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release
+
+build:
+  stage: build
+  script:
+    - cd build
+    - make -j
+
+# run tests using the binary built before
+test:
+  stage: test
+  before_script:
+    - export LD_LIBRARY_PATH=${PWD}/build/:${LD_LIBRARY_PATH}
+  script:
+    - cd build/tests
+    - ./test_internal_functions -s
