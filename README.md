@@ -8,6 +8,14 @@ The hybrid adaptive scheduling algorithm uses _work stealing_ in order to balanc
 >
 > English Title: **An Adaptive Scheduler of Parallel Loops for Asymmetric Multicore Processors**
 
+The scheduler is based on the following related works:
+
+> M. Durand, F. Broquedis, T. Gautier, and B. Raffin, **An efficient openmp loop scheduler for irregular applications on large-scale NUMA machines**, in OpenMP in the Era of Low Power Devices and Accelerators, A. P. Rendell, B. M. Chapman, and M. S. Muller, Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 2013, pp. 141–155. [Online]. Available: https://doi.org/10.1007/978-3-642-40698-0_11
+>
+> S. D. K. Mor, **Analysis of synchronizations in greedy-scheduled executions and applications to efficient generation of pseudorandom numbers in parallel**, Thesis, Universidade Federal do Rio Grande do Sul, Porto Alegre, RS, Brazil, nov 2015. [Online]. Available: http://hdl.handle.net/10183/130529
+>
+> D. Traore, J.-L. Roch, N. Maillard, T. Gautier, and J. Bernard, **Deque-free work-optimal parallel STL algorithms**, in Euro-Par 2008 -- Parallel Processing, E. Luque, T. Margalef, and D. Benítez, Eds.Berlin, Heidelberg: Springer Berlin Heidelberg, 2008, pp. 887–897. [Online]. Available: https://doi.org/10.1007/978-3-540-85451-7_95
+
 ## API
 
 The Adaptive's API is based on Thread Building Blocks API. Currently we support two kinds of parallel loop:
