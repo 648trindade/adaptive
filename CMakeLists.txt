@@ -11,6 +11,7 @@ SET(CONNECTOR_SOURCES "adaptive/adaptive_c_connector.cpp")
 
 ADD_LIBRARY(adaptive SHARED ${SOURCES} ${CONNECTOR_SOURCES})
 target_link_libraries(adaptive Threads::Threads)
+include_directories("include")
 
 add_subdirectory(tests)
 add_subdirectory(examples)
