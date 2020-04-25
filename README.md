@@ -1,5 +1,7 @@
 # Adaptive
 
+[![Build Status](https://travis-ci.com/648trindade/adaptive.svg?branch=master)](https://travis-ci.com/648trindade/adaptive)
+
 Adaptive is a parallel loop scheduler deisgned with an adaptive algorithm. Its original purpose is to better balancing parallel irregular workloads and/or better balancing regular (and irregular) workloads on Asymmetric Multicore Processors (AMP).
 
 The hybrid adaptive scheduling algorithm uses _work stealing_ in order to balance loads on threads, and uses a THE protocol approach to minimize parallel overhead on concurrent scheduling operations. A deep explanation of how scheduler actually works can be found on the following master thesis (written in portuguese. English paper coming soon):
