@@ -10,7 +10,7 @@ script:
     # Build
     - mkdir $BUILD_DIR
     - cd $BUILD_DIR
-    - cmake .. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release -DCMAKE_MODULE_PATH=../cmake
+    - cmake .. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release
     - make -j 4
     # Tests
     - cd ${BUILD_DIR}/tests

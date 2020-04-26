@@ -2,6 +2,7 @@ PROJECT(Adaptive)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+set(CMAKE_MODULE_PATH "${Adaptive_SOURCE_DIR}/cmake")
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 
 find_package(Threads REQUIRED)

@@ -1,5 +1,6 @@
 #include "adaptive.hpp"
 
+#include <pthread.h>
 #include <thread>
 
 namespace adapt {

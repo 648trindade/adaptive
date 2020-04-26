@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <limits>
 #include <memory>
-#include <pthread.h>
 #include <sched.h>
 #include <string.h> //memset
 #include <sys/syscall.h>
@@ -347,10 +346,10 @@ public:
 class ThreadHandler {
 private:
   bool stop;
-  std::array<pthread_t, ADPT_MAX_THREADS> threads;
+  std::array<unsigned long, ADPT_MAX_THREADS> threads;
 
 public:
-  pthread_t master;
+  unsigned long master;
   std::atomic<int> counter;
   AtomicBarrier barrier;
   std::array<cpu_set_t, ADPT_MAX_THREADS> cpusets;
