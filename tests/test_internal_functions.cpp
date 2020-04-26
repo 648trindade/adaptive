@@ -57,7 +57,7 @@ TEST_CASE("Thread Handler Object") {
   SECTION("do each thread has a worker") {
     bool passed = true;
     for (int i = 0; (i < ADPT_MAX_THREADS) && passed; i++)
-      if (((i < num_threads) && (th.absWorkers[i] == nullptr)) || ((i >= num_threads) && (th.absWorkers[i] != nullptr)))
+      if (((i < num_threads) && (th.workers_array[i] == nullptr)) || ((i >= num_threads) && (th.workers_array[i] != nullptr)))
         passed = false;
     CHECK(passed);
   }
@@ -84,7 +84,7 @@ TEST_CASE("For Workers") {
       auto *worker = workers[i];
       CHECK(worker->first == chunk * i + first + MIN(i, remain));                  // first iteration of sub-range
       CHECK(worker->last == worker->first + chunk + static_cast<int>(i < remain)); // last (+1) iteration of sub-range
-      CHECK(worker->seq_chunk == grain_number); // chunk/grain size to serial extraction
+      CHECK(worker->seq_chunk == get_grain()); // chunk/grain size to serial extraction
       CHECK(worker->min_steal == MAX(int(std::sqrt(worker->last - worker->first)), 1)); // minimal size to steal
       delete worker;
     }
@@ -108,7 +108,7 @@ TEST_CASE("Reduction Workers") {
       auto *worker = workers[i];
       CHECK(worker->first == chunk * i + first + MIN(i, remain));                  // first iteration of sub-range
       CHECK(worker->last == worker->first + chunk + static_cast<int>(i < remain)); // last (+1) iteration of sub-range
-      CHECK(worker->seq_chunk == grain_number); // chunk/grain size to serial extraction
+      CHECK(worker->seq_chunk == get_grain()); // chunk/grain size to serial extraction
       CHECK(worker->min_steal == MAX(int(std::sqrt(worker->last - worker->first)), 1)); // minimal size to steal
       CHECK(worker->reduction_value == 0);
       delete worker;

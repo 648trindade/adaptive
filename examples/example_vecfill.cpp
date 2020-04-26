@@ -19,21 +19,21 @@ void avg_stddev(std::vector<double> &times, double &sum, double &avg, double &st
 }
 
 int main(int argc, char *argv[]) {
-  size_t s = 1000;
+  size_t size = 1000;
   std::vector<int> data;
   int run           = 1;
-  size_t log_update = 10000;
+  size_t log_update = 100000;
   size_t count      = 0;
-  size_t limit      = 1000000000;
+  size_t limit      = 100000;
   double sum, avg, stddev;
 
   switch (argc) {
   case 4: log_update = static_cast<size_t>(atoi(argv[3]));
-  case 3: s = static_cast<size_t>(atoi(argv[2]));
+  case 3: size = static_cast<size_t>(atoi(argv[2]));
   case 2: limit = static_cast<size_t>(atoi(argv[1]));
   default: break;
   }
-  data.resize(s);
+  data.resize(size);
   std::vector<double> times(limit);
 
   // Adaptive ==========================================================================================================
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 
     double init = omp_get_wtime();
 
-    adapt::parallel_for(size_t(0), s, [&](size_t i_begin, size_t i_end) {
+    adapt::parallel_for(size_t(0), size, [&](size_t i_begin, size_t i_end) {
       for (size_t i = i_begin; i < i_end; i++) data[i] += count * 10;
     });
 
@@ -54,6 +54,8 @@ int main(int argc, char *argv[]) {
   avg_stddev(times, sum, avg, stddev);
   printf("ADAPT %zu iters - %lf s (avg %lf s) (stddev %lf s)\n", count, sum, avg, stddev);
 
+  adapt::stop_workers();
+
   // TBB ===============================================================================================================
 
   for (count = 0; count < limit; count++) {
@@ -62,7 +64,7 @@ int main(int argc, char *argv[]) {
 
     double init = omp_get_wtime();
 
-    tbb::parallel_for(tbb::blocked_range<int>(0, s), [&](tbb::blocked_range<int> r) {
+    tbb::parallel_for(tbb::blocked_range<int>(0, size), [&](tbb::blocked_range<int> r) {
       for (int i = r.begin(); i < r.end(); i++) data[i] += count * 10;
     });
 
@@ -80,8 +82,8 @@ int main(int argc, char *argv[]) {
 
     double init = omp_get_wtime();
 
-#pragma omp parallel for schedule(static)
-    for (int i = 0; i < s; i++) data[i] += count * 10;
+#pragma omp parallel for schedule(dynamic, 16)
+    for (int i = 0; i < size; i++) data[i] += count * 10;
 
     double end   = omp_get_wtime();
     times[count] = end - init;
