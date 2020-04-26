@@ -62,6 +62,18 @@ public:
   bool is_free();
 };
 
+// AtomicMutex =========================================================================================================
+
+class AtomicMutex {
+  std::atomic<bool> locked;
+
+public:
+  AtomicMutex();
+  void lock();
+  void unlock();
+  bool try_lock();
+};
+
 class AbstractWorker {
 public:
   virtual void work() = 0;
@@ -84,12 +96,11 @@ public:
   Index seq_chunk;          // chunk/grain size
   Index min_steal;          // square root of su-range size
   Index half_range;         // half of range
-  pthread_mutex_t lock;     // worker lock
+  AtomicMutex lock;         // worker lock
   bool is_LITTLE;
 
   Worker(const size_t thr_id, const Index global_first, const Index global_last, std::vector<Worker *> *workers_array) :
       _id(thr_id), _nthr(num_threads), _workers_array(workers_array) {
-    pthread_mutex_init(&this->lock, NULL);
     is_LITTLE = IS_LITTLE(_id);
 
 #ifdef DISTRIB_BY_DEMAND // thread 0 starts with entire range
@@ -114,7 +125,7 @@ public:
     recalc_internal();
   }
 
-  virtual ~Worker() { pthread_mutex_destroy(&lock); }
+  virtual ~Worker() {}
 
 protected:
   inline void recalc_internal() {
@@ -164,11 +175,10 @@ protected:
       first = copy_first; // conflict
     }
     /* conflict detected: rollback and lock */
-    pthread_mutex_lock(&lock);
+    lock.lock();
     _working_first = copy_first;
     if (_working_first < last) first = _working_last = copy_first = last;
-    pthread_mutex_unlock(&lock);
-
+    lock.unlock();
     return (_working_first < first);
   }
 
@@ -206,7 +216,7 @@ protected:
 #else
       if (victim.last > victim.first) {
 #endif
-        if (pthread_mutex_trylock(&(victim.lock)) == 0) {
+        if (victim.lock.try_lock()) {
           const Index vic_last = victim.last;
           Index steal_size;
 #ifdef STEAL_HALF
@@ -223,7 +233,7 @@ protected:
 #endif
 #ifdef STEAL_THRESHOLD_LITTLE
           if ((steal_size < victim.min_steal) && is_LITTLE) {
-            pthread_mutex_unlock(&(victim.lock));
+            victim.lock.unlock();
             --remaining;
             _visited[i] = true;
             continue; // cancel if stealer is LITTLE and steal size is too small
@@ -239,14 +249,14 @@ protected:
 #ifdef REDUCE_GRAIN_ON_STEAL
               victim.seq_chunk = MAX(victim.seq_chunk >> 1, Index(1));
 #endif
-              pthread_mutex_unlock(&(victim.lock));
+              victim.lock.unlock();
               last  = vic_last;
               first = new_last;
               recalc_internal();
               return true;
             }
           }
-          pthread_mutex_unlock(&(victim.lock));
+          victim.lock.unlock();
         } else
           continue; // if cannot lock
       }
@@ -289,7 +299,7 @@ class ReductionWorker : public Worker<Index> {
 
 public:
   Value reduction_value;
-  pthread_mutex_t red_lock;
+  AtomicMutex red_lock;
 
   ReductionWorker(const size_t thr_id,
                   const Index global_first,
@@ -300,11 +310,10 @@ public:
                   const Reduction &_reduction) :
       Worker<Index>(thr_id, global_first, global_last, workers_array),
       local_compute(_local_compute), reduction(_reduction), identity(_identity), reduction_value(_identity) {
-    pthread_mutex_init(&red_lock, nullptr);
-    pthread_mutex_lock(&red_lock);
+    red_lock.lock();
   }
 
-  virtual ~ReductionWorker() { pthread_mutex_destroy(&red_lock); }
+  virtual ~ReductionWorker() {}
 
   virtual void work() override {
     while (true) {                  // Iterates while there are work to be done
@@ -323,15 +332,15 @@ public:
         const int an_thr = this->_id + (i >> 1);
         if (an_thr < num_threads) {
           ReductionWorker *an_worker = static_cast<ReductionWorker *>(this->_workers_array->at(an_thr));
-          pthread_mutex_lock(&an_worker->red_lock);
+          an_worker->red_lock.lock();
           reduction_value = reduction(reduction_value, an_worker->reduction_value);
-          pthread_mutex_unlock(&an_worker->red_lock);
+          an_worker->red_lock.unlock();
           continue;
         }
       }
       break;
     }
-    pthread_mutex_unlock(&red_lock);
+    red_lock.unlock();
   }
 }; // ReductionWorker
 
