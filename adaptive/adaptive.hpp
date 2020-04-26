@@ -51,7 +51,7 @@ extern size_t grain_number;
 class AtomicBarrier {
 private:
   std::atomic<size_t> _counter;
-  size_t participants;
+  size_t _participants;
 
 public:
   AtomicBarrier();
@@ -59,6 +59,7 @@ public:
   void set_participants(size_t _participants);
   void reset();
   void wait();
+  bool is_free();
 };
 
 class AbstractWorker {
