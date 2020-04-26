@@ -6,6 +6,10 @@ add_executable(
 )
 target_link_libraries(test_suite adaptive)
 
+add_executable(test_locks "test_locks.cpp")
+target_link_libraries(test_locks adaptive)
+
 # include(CTest)
 find_package(Catch REQUIRED)
 catch_discover_tests(test_suite)
+catch_discover_tests(test_locks)
