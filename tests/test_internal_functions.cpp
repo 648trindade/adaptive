@@ -33,6 +33,11 @@ TEST_CASE("Thread Handler Object", "[!mayfail]") {
   ThreadHandler &th  = thread_handler;
   size_t num_threads = adapt::get_num_threads();
 
+  SECTION("dumb test to synchronize thread creation") {
+    // dumb parallel for to ensure scheduler thread creation before internal tests
+    adapt::parallel_for(0, 1, [](const int b, const int e) {});
+  }
+
   SECTION("is the master thread the same main thread") { CHECK(th.master == pthread_self()); }
 
   SECTION("does the counter have the correct number of threads") { CHECK(th.counter == num_threads); }
