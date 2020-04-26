@@ -14,5 +14,6 @@ script:
     - make -j 4
     # Tests
     - cd ${BUILD_DIR}/tests
-    - ./test_suite
+    - ./test_internal_functions
     - ./test_locks
+    - ./test_barriers

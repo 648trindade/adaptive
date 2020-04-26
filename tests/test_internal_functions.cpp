@@ -1,3 +1,5 @@
+#define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
+#define CATCH_CONFIG_CONSOLE_WIDTH 120
 #include "../adaptive/adaptive.hpp"
 #include "Catch2/catch.hpp"
 
@@ -28,7 +30,7 @@ TEST_CASE("Get Number of Threads") {
   REQUIRE(adapt::get_num_threads() == std::thread::hardware_concurrency());
 }
 
-TEST_CASE("Thread Handler Object", "[!mayfail]") {
+TEST_CASE("Thread Handler Object") {
   using namespace adapt::__internal__;
   ThreadHandler &th  = thread_handler;
   size_t num_threads = adapt::get_num_threads();
