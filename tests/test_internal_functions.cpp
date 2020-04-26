@@ -3,6 +3,8 @@
 #include "../adaptive/adaptive.hpp"
 #include "Catch2/catch.hpp"
 
+#include <thread>
+
 static auto for_compute       = [](const int b, const int e) {};
 static auto reduction_compute = [](const int b, const int e, int i) { return i; };
 typedef std::__1::plus<int> plus_int;

@@ -6,7 +6,7 @@
 #include <chrono>
 #include <thread>
 
-using namespace adapt::__internal__;
+using namespace adapt;
 
 void barrier_loop(AtomicBarrier &barrier, size_t iters) {
   for (size_t i = 0; i < iters; i++) { barrier.wait(); }

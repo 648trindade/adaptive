@@ -1,11 +1,11 @@
 #define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
 #define CATCH_CONFIG_CONSOLE_WIDTH 120
-#include "../adaptive/adaptive.hpp"
+#include "../adaptive/atomic_mutex.hpp"
 #include "Catch2/catch.hpp"
 
 #include <thread>
 
-using namespace adapt::__internal__;
+using namespace adapt;
 
 TEST_CASE("Locking and Unlocking") {
   AtomicMutex mutex;
