@@ -2,9 +2,9 @@
 
 [![Build Status](https://travis-ci.com/648trindade/adaptive.svg?branch=master)](https://travis-ci.com/648trindade/adaptive)
 
-Adaptive is a parallel loop scheduler deisgned with an adaptive algorithm. Its original purpose is to better balancing parallel irregular workloads and/or better balancing regular (and irregular) workloads on Asymmetric Multicore Processors (AMP).
+Adaptive is a parallel loop scheduler designed with an adaptive algorithm. Its original purpose is to better balancing parallel irregular workloads and better balancing regular (and irregular) workloads on Asymmetric Multicore Processors (AMP).
 
-The hybrid adaptive scheduling algorithm uses _work stealing_ in order to balance loads on threads, and uses a THE protocol approach to minimize parallel overhead on concurrent scheduling operations. A deep explanation of how scheduler actually works can be found on the following master thesis (written in portuguese. English paper coming soon):
+The hybrid adaptive scheduling algorithm uses _work stealing_ in order to balance loads on threads, and uses a THE protocol approach to minimize parallel overhead on concurrent scheduling operations. A deep explanation of how scheduler actually works can be found on the following master thesis (written in portuguese, english paper coming soon):
 
 > Trindade, Rafael G. and Lima, João V. F.. **Escalonador Adaptativo de Laços Paralelos para Processadores Multinúcleo Assimétricos**. Master Thesis. Universidade Federal de Santa Maria. 2020. Santa Maria, RS, Brazil. Available at: http://www.inf.ufsm.br/~rtrindade/docs/dissertacao-rtrindade.pdf.
 >
@@ -20,7 +20,7 @@ The scheduler is based on the following related works:
 
 ## API
 
-The Adaptive's API is based on Thread Building Blocks API. Currently we support two kinds of parallel loop:
+The Adaptive's API is based on Thread Building Blocks (TBB) API. We currently support two types of parallel loops:
 
 * Common parallel loops:
 
@@ -58,7 +58,7 @@ adapt::parallel_for(
 );
 ```
 
-Parallelizing a vector sum algorithm
+Parallelizing a vector sum algorithm (using `std::plus` utility binary function as reductor)
 ```c++
 std::vector<double> vec(256, 0.0);
 
@@ -78,7 +78,7 @@ double result = adapt::parallel_reduce(
 );
 ```
 
-Parallelizing a find minimal value and index algorithm
+Parallelizing a find minimal value and index algorithm (using a custom reductor -- C++ lambda function)
 ```c++
 std::vector<double> vec(256, 0.0);
 
