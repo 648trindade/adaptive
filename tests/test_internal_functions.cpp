@@ -1,7 +1,9 @@
 #define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
-#define CATCH_CONFIG_CONSOLE_WIDTH 300
+#define CATCH_CONFIG_CONSOLE_WIDTH 120
 #include "../adaptive/adaptive.hpp"
 #include "Catch2/catch.hpp"
+
+#include <thread>
 
 static auto for_compute       = [](const int b, const int e) {};
 static auto reduction_compute = [](const int b, const int e, int i) { return i; };
@@ -30,10 +32,15 @@ TEST_CASE("Get Number of Threads") {
   REQUIRE(adapt::get_num_threads() == std::thread::hardware_concurrency());
 }
 
-TEST_CASE("Thread Handler Object", "[!mayfail]") {
+TEST_CASE("Thread Handler Object") {
   using namespace adapt::__internal__;
   ThreadHandler &th  = thread_handler;
   size_t num_threads = adapt::get_num_threads();
+
+  SECTION("dumb test to synchronize thread creation") {
+    // dumb parallel for to ensure scheduler thread creation before internal tests
+    adapt::parallel_for(0, 1, [](const int b, const int e) {});
+  }
 
   SECTION("is the master thread the same main thread") { CHECK(th.master == pthread_self()); }
 
@@ -52,7 +59,7 @@ TEST_CASE("Thread Handler Object", "[!mayfail]") {
   SECTION("do each thread has a worker") {
     bool passed = true;
     for (int i = 0; (i < ADPT_MAX_THREADS) && passed; i++)
-      if (((i < num_threads) && (th.absWorkers[i] == nullptr)) || ((i >= num_threads) && (th.absWorkers[i] != nullptr)))
+      if (((i < num_threads) && (th.workers_array[i] == nullptr)) || ((i >= num_threads) && (th.workers_array[i] != nullptr)))
         passed = false;
     CHECK(passed);
   }
@@ -79,7 +86,7 @@ TEST_CASE("For Workers") {
       auto *worker = workers[i];
       CHECK(worker->first == chunk * i + first + MIN(i, remain));                  // first iteration of sub-range
       CHECK(worker->last == worker->first + chunk + static_cast<int>(i < remain)); // last (+1) iteration of sub-range
-      CHECK(worker->seq_chunk == grain_number); // chunk/grain size to serial extraction
+      CHECK(worker->seq_chunk == get_grain()); // chunk/grain size to serial extraction
       CHECK(worker->min_steal == MAX(int(std::sqrt(worker->last - worker->first)), 1)); // minimal size to steal
       delete worker;
     }
@@ -103,7 +110,7 @@ TEST_CASE("Reduction Workers") {
       auto *worker = workers[i];
       CHECK(worker->first == chunk * i + first + MIN(i, remain));                  // first iteration of sub-range
       CHECK(worker->last == worker->first + chunk + static_cast<int>(i < remain)); // last (+1) iteration of sub-range
-      CHECK(worker->seq_chunk == grain_number); // chunk/grain size to serial extraction
+      CHECK(worker->seq_chunk == get_grain()); // chunk/grain size to serial extraction
       CHECK(worker->min_steal == MAX(int(std::sqrt(worker->last - worker->first)), 1)); // minimal size to steal
       CHECK(worker->reduction_value == 0);
       delete worker;

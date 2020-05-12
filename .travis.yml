@@ -2,16 +2,29 @@ os: linux
 language: cpp
 dist: bionic
 compiler: clang
-before_script:
-  - export BUILD_DIR=${PWD}/build
+cache:
+  directories:
+  - /home/travis/build/648trindade/adaptive/build
+before_install:
   - sudo apt-get update
   - sudo apt-get -y install libtbb-dev libc++-dev
-script:
-    # Build
-    - mkdir $BUILD_DIR
-    - cd $BUILD_DIR
-    - cmake .. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release -DCMAKE_MODULE_PATH=../cmake
-    - make -j 4
-    # Tests
-    - cd ${BUILD_DIR}/tests
-    - ./test_internal_functions -s
+before_script:
+  - export BUILD_DIR=${PWD}/build
+  - mkdir -p $BUILD_DIR
+  - cd $BUILD_DIR
+stages:
+  - build
+  - test
+jobs:
+  include:
+    - stage: build
+      script:
+        - cmake .. -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release
+        - make -j 4
+    - stage: test
+      # Internal Functions
+      script: tests/test_internal_functions
+    - # Locks
+      script: tests/test_locks
+    - # Barriers
+      script: tests/test_barriers
